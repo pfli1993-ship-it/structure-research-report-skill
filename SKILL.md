@@ -26,6 +26,7 @@ description: 用户上传/拖入研报时自动触发。把券商/投行/研究�
 
 4. Export, download, and open.
    - Run `scripts/export_long_images.mjs` from this skill to screenshot HTML into PNG, copy it to `~/Downloads`, rename it from the `<h1>` topic, and open it with Pixea.
+   - After Pixea opens, the script uses best-effort macOS UI automation to enter fullscreen and select Pixea's Hand Tool/move-picture mode. If macOS Accessibility permission blocks automation, the PNG export still succeeds and the JSON warning explains the issue.
    - Pass specific HTML files to export only those files, or pass no files to export all `structured_report*.html` in the current directory.
 
 ## Export Script
@@ -42,11 +43,12 @@ Or export every `structured_report*.html` in the current directory:
 node ~/.codex/skills/structure-research-report/scripts/export_long_images.mjs
 ```
 
-The script prints JSON including `localPng`, `downloadPng`, and `openedInPixea`.
+The script prints JSON including `localPng`, `downloadPng`, `openedInPixea`, and `pixea` automation details such as `fullscreen`, `moveTool`, and `warning`.
 
 ## Validation
 
 - Confirm extracted rating/target price/current report price against the PDF table or title page.
 - Confirm the PNG is non-empty and has width `1080`.
 - Confirm the downloaded PNG exists in `~/Downloads` and `openedInPixea` is `true` when Pixea is installed.
+- Confirm Pixea fullscreen/Hand Tool automation reports `menu` or `shortcut`/`space-fallback`; if it reports `failed`, tell the user to grant Accessibility permission to Codex/Terminal/System Events.
 - If quote retrieval fails, ensure the long image says why and does not silently replace the source.

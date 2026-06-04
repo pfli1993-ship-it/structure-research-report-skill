@@ -16,6 +16,7 @@ Codex skill for turning broker research PDFs into concise Chinese structured lon
 - Exports the HTML into a `1080px` wide PNG long image.
 - Copies the PNG to `~/Downloads`.
 - Opens the downloaded PNG with Pixea when Pixea is installed.
+- Uses best-effort macOS UI automation to put Pixea into fullscreen and select the Hand Tool / move-picture mode.
 
 ## Privacy And Credentials
 
@@ -66,15 +67,20 @@ The script prints JSON containing:
 - `localPng`
 - `downloadPng`
 - `openedInPixea`
+- `pixea.fullscreen`
+- `pixea.moveTool`
+- `pixea.warning`
 
 ## Requirements
 
 - macOS for Pixea auto-open behavior.
 - Google Chrome at `/Applications/Google Chrome.app`, or a Playwright-managed Chromium.
 - Codex bundled Node runtime or a local Node environment with Playwright available.
+- macOS Accessibility permission for Codex/Terminal/System Events if you want Pixea fullscreen and Hand Tool automation. Without it, export still works and the JSON includes a warning.
 
 ## Notes
 
 - The `<h1>` in the generated HTML is used as the downloaded PNG filename.
+- Pixea automation is best-effort because menu labels and macOS permissions can vary by app version and language.
 - Unsupported market quotes should be shown as unavailable with the exact failure reason instead of silently replacing the quote source.
 - “买入价格” defaults to the broker report target price unless the user specifies another rule.

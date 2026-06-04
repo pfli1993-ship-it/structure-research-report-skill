@@ -64,13 +64,129 @@ async function discoverHtmlFiles(args) {
 }
 
 async function openInPixea(filePath) {
+  const result = {
+    opened: false,
+    automationAttempted: false,
+    fullscreen: "not-attempted",
+    moveTool: "not-attempted",
+    warning: "",
+  };
+
   try {
     await execFileAsync("open", ["-a", pixeaAppName, filePath]);
-    return true;
+    result.opened = true;
   } catch (error) {
     console.warn(`Cannot open with ${pixeaAppName}: ${filePath}`);
     console.warn(error.message);
-    return false;
+    result.warning = error.message;
+    return result;
+  }
+
+  const automation = await automatePixeaViewer();
+  return { ...result, ...automation };
+}
+
+async function automatePixeaViewer() {
+  const script = `
+set fullScreenState to "not-found"
+set moveToolState to "not-found"
+
+tell application "Pixea" to activate
+delay 0.8
+
+tell application "System Events"
+  if not (exists process "Pixea") then error "Pixea process is not available"
+
+  tell process "Pixea"
+    set frontmost to true
+    delay 0.2
+
+    set isAlreadyFullScreen to false
+    try
+      set isAlreadyFullScreen to value of attribute "AXFullScreen" of window 1
+    end try
+
+    if isAlreadyFullScreen is true then
+      set fullScreenState to "already-fullscreen"
+    else
+      repeat with topItem in menu bar items of menu bar 1
+        try
+          set topMenu to menu 1 of topItem
+          repeat with itemRef in menu items of topMenu
+            try
+              set itemName to name of itemRef as text
+              if itemName is "Toggle Full Screen" or itemName is "Toggle Fullscreen" or itemName is "切换全屏" or itemName is "切换全屏幕" then
+                click itemRef
+                set fullScreenState to "menu"
+                exit repeat
+              end if
+            end try
+          end repeat
+        end try
+        if fullScreenState is "menu" then exit repeat
+      end repeat
+
+      if fullScreenState is "not-found" then
+        try
+          keystroke "f" using {control down, command down}
+          set fullScreenState to "shortcut"
+        end try
+      end if
+    end if
+
+    delay 1.0
+
+    repeat with topItem in menu bar items of menu bar 1
+      try
+        set topMenu to menu 1 of topItem
+        repeat with itemRef in menu items of topMenu
+          try
+            set itemName to name of itemRef as text
+            if itemName is "Hand Tool" or itemName is "手形工具" or itemName is "手工具" then
+              click itemRef
+              set moveToolState to "menu"
+              exit repeat
+            end if
+          end try
+        end repeat
+      end try
+      if moveToolState is "menu" then exit repeat
+    end repeat
+
+    if moveToolState is "not-found" then
+      try
+        key code 49
+        set moveToolState to "space-fallback"
+      end try
+    end if
+  end tell
+end tell
+
+return "fullscreen=" & fullScreenState & ";moveTool=" & moveToolState
+`;
+
+  try {
+    const { stdout } = await execFileAsync("osascript", ["-e", script], { timeout: 15000 });
+    const statusLine = stdout.trim();
+    return {
+      automationAttempted: true,
+      fullscreen: statusLine.match(/fullscreen=([^;]+)/)?.[1] ?? "unknown",
+      moveTool: statusLine.match(/moveTool=([^;]+)/)?.[1] ?? "unknown",
+      warning: "",
+    };
+  } catch (error) {
+    const details = [error.stderr, error.stdout, error.message].filter(Boolean).join(" ");
+    const message = [
+      "Pixea UI automation failed. macOS may require Accessibility permission for Codex/Terminal/System Events.",
+      details,
+    ].join(" ");
+    console.warn(message);
+    return {
+      automationAttempted: true,
+      fullscreen: "failed",
+      moveTool: "failed",
+      warning: message,
+    };
   }
 }
 
@@ -91,9 +207,9 @@ async function exportOne(browser, htmlPath) {
 
     await page.screenshot({ path: localPng, fullPage: true });
     await fs.copyFile(localPng, downloadPng);
-    const openedInPixea = await openInPixea(downloadPng);
+    const pixea = await openInPixea(downloadPng);
 
-    return { htmlPath, title, localPng, downloadPng, openedInPixea };
+    return { htmlPath, title, localPng, downloadPng, openedInPixea: pixea.opened, pixea };
   } finally {
     await page.close();
   }
