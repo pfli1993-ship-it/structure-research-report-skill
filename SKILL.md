@@ -1,6 +1,6 @@
 ---
 name: structure-research-report
-description: Structure broker/research PDFs into concise Chinese investment-summary long images. Use when the user provides equity, macro, FX, industry, biotech, or other sell-side research PDFs and asks to structure, summarize, make a long image, extract industry background/company introduction/marginal changes/buy price/current price, save to Downloads, or open the generated image in Pixea.
+description: 用户上传/拖入研报时自动触发。把券商/投行/研究机构 PDF 研报结构化为中文投资摘要长图，适用于股票、宏观、外汇、行业、生物科技等研报；自动提取行业背景、企业介绍、边际变化、买入价格/目标价、现价格，生成 HTML/PNG，保存到下载文件夹并用 Pixea 打开。
 ---
 
 # Structure Research Report
