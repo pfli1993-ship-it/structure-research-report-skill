@@ -1,0 +1,6 @@
+interface:
+  display_name: "结构化研报长图"
+  short_description: "把券商 PDF 研报结构化为中文长图并导出"
+  default_prompt: "Use $structure-research-report to structure this broker research PDF into a Chinese long image, save it to Downloads, and open it in Pixea."
+policy:
+  allow_implicit_invocation: true
