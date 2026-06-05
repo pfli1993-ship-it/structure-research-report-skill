@@ -109,49 +109,30 @@ tell application "System Events"
     if isAlreadyFullScreen is true then
       set fullScreenState to "already-fullscreen"
     else
-      repeat with topItem in menu bar items of menu bar 1
-        try
-          set topMenu to menu 1 of topItem
-          repeat with itemRef in menu items of topMenu
-            try
-              set itemName to name of itemRef as text
-              if itemName is "Toggle Full Screen" or itemName is "Toggle Fullscreen" or itemName is "切换全屏" or itemName is "切换全屏幕" then
-                click itemRef
-                set fullScreenState to "menu"
-                exit repeat
-              end if
-            end try
-          end repeat
-        end try
-        if fullScreenState is "menu" then exit repeat
-      end repeat
-
-      if fullScreenState is "not-found" then
-        try
-          keystroke "f" using {control down, command down}
-          set fullScreenState to "shortcut"
-        end try
-      end if
+      try
+        keystroke "f" using {control down, command down}
+        set fullScreenState to "shortcut"
+      end try
     end if
 
     delay 1.0
 
-    repeat with topItem in menu bar items of menu bar 1
+    try
+      click menu item "手工具" of menu 1 of menu bar item "编辑" of menu bar 1
+      set moveToolState to "menu"
+    end try
+    if moveToolState is "not-found" then
       try
-        set topMenu to menu 1 of topItem
-        repeat with itemRef in menu items of topMenu
-          try
-            set itemName to name of itemRef as text
-            if itemName is "Hand Tool" or itemName is "手形工具" or itemName is "手工具" then
-              click itemRef
-              set moveToolState to "menu"
-              exit repeat
-            end if
-          end try
-        end repeat
+        click menu item "手形工具" of menu 1 of menu bar item "编辑" of menu bar 1
+        set moveToolState to "menu"
       end try
-      if moveToolState is "menu" then exit repeat
-    end repeat
+    end if
+    if moveToolState is "not-found" then
+      try
+        click menu item "Hand Tool" of menu 1 of menu bar item "Edit" of menu bar 1
+        set moveToolState to "menu"
+      end try
+    end if
 
     if moveToolState is "not-found" then
       try
