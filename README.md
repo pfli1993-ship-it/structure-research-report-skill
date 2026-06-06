@@ -18,6 +18,7 @@ Codex skill for turning broker research PDFs into concise Chinese structured lon
 - Copies the PNG to `~/Downloads`.
 - Opens the downloaded PNG with Pixea when Pixea is installed.
 - Uses best-effort macOS UI automation to put Pixea into fullscreen and select the Hand Tool / move-picture mode.
+- Automatically opens/verifies the local Futu OpenD app when a research PDF workflow starts or when valuation snapshots are requested.
 
 ## Privacy And Credentials
 
@@ -32,6 +33,8 @@ This repository does **not** contain:
 The bundled export script only screenshots local HTML files and copies PNGs to the local Downloads folder. If Codex uses Futu for prices, it uses the local user's own Futu/OpenD environment outside this repository.
 
 The valuation helper queries only public market snapshot fields from the user's local Futu OpenD. It does not access trading accounts, positions, orders, credentials, or tokens.
+
+The OpenD helper only checks whether `127.0.0.1:11111` is listening and, if not, opens the local macOS app such as `/Applications/Futu_OpenD.app`. It does not log in, trade, read positions, read orders, or send credentials anywhere.
 
 ## Installation
 
@@ -72,6 +75,12 @@ python3 ~/.codex/skills/structure-research-report/scripts/get_valuation_snapshot
   SH.688222 --target-price 31.60
 ```
 
+The valuation command auto-starts Futu OpenD when needed. You can also verify or open OpenD directly:
+
+```bash
+python3 ~/.codex/skills/structure-research-report/scripts/ensure_futu_opend.py
+```
+
 The script prints JSON containing:
 
 - `localPng`
@@ -87,6 +96,7 @@ The script prints JSON containing:
 - Google Chrome at `/Applications/Google Chrome.app`, or a Playwright-managed Chromium.
 - Codex bundled Node runtime or a local Node environment with Playwright available.
 - Futu OpenD and `futu-api` for current price, market cap, PE, and PB fields.
+- Futu OpenD installed as `/Applications/Futu_OpenD.app` or another common OpenD app name for auto-start behavior.
 - macOS Accessibility permission for Codex/Terminal/System Events if you want Pixea fullscreen and Hand Tool automation. Without it, export still works and the JSON includes a warning.
 
 ## Notes

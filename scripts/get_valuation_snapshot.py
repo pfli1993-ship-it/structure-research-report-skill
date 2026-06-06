@@ -5,6 +5,11 @@
 import argparse
 import json
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from ensure_futu_opend import ensure_opend
 
 try:
     from futu import OpenQuoteContext, RET_OK
@@ -43,7 +48,20 @@ def main():
     parser.add_argument("--target-price", type=float, help="研报目标价")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=11111)
+    parser.add_argument("--no-auto-start-opend", action="store_true", help="不要自动打开 Futu OpenD")
+    parser.add_argument("--opend-wait-seconds", type=float, default=12, help="打开 OpenD 后等待端口可用的秒数")
     args = parser.parse_args()
+
+    opend_status = None
+    if not args.no_auto_start_opend:
+        opend_status = ensure_opend(args.host, args.port, args.opend_wait_seconds)
+        if not opend_status.get("ok"):
+            print(json.dumps({
+                "code": args.code,
+                "error": opend_status.get("error", "Futu OpenD is not available."),
+                "opend": opend_status,
+            }, ensure_ascii=False))
+            sys.exit(1)
 
     context = OpenQuoteContext(host=args.host, port=args.port)
     try:
@@ -71,6 +89,7 @@ def main():
             "pe_static": clean_number(row.get("pe_ratio")),
             "pb": clean_number(row.get("pb_ratio")),
             "target_market_cap_assumption": "Current share count remains unchanged.",
+            "opend": opend_status,
         }
         print(json.dumps(result, ensure_ascii=False))
     except Exception as error:

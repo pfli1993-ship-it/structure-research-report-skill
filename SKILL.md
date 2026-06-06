@@ -7,6 +7,12 @@ description: 用户上传/拖入研报时自动触发。把券商/投行/研究�
 
 ## Workflow
 
+0. Ensure Futu OpenD is available as soon as a research PDF is uploaded/dragged in.
+   - Before extracting the report, run `scripts/ensure_futu_opend.py` to open the local Futu OpenD app when the default quote API port is not listening.
+   - The helper checks `127.0.0.1:11111`; if the port is closed, it opens `/Applications/Futu_OpenD.app` or common fallback app names and waits for the port to become reachable.
+   - This only starts the local OpenD application for quote access. It must not place trades, read positions, or access account/order data.
+   - If OpenD cannot be found or the port does not become reachable, continue the report workflow and write the exact failure reason in the Futu price/valuation fields.
+
 1. Read the PDF first.
    - Use `pdfplumber`/`pypdf` when text extraction works.
    - For image-only PDFs, render pages with `pdftoppm` and visually inspect/OCR the most relevant pages.
@@ -22,7 +28,7 @@ description: 用户上传/拖入研报时自动触发。把券商/投行/研究�
      - `目标价对应市值`: `现市值 × 研报目标价 ÷ 富途现价`; label it as an estimate assuming the current share count remains unchanged.
      - `市盈率`: prefer Futu `pe_ttm_ratio` and label it `PE-TTM`; use `pe_ratio` only as a clearly labeled static-PE fallback.
      - `市净率`: Futu `pb_ratio`.
-   - Run `scripts/get_valuation_snapshot.py <FUTU_CODE> --target-price <TARGET_PRICE>` to fetch and calculate the valuation module. If Futu returns an invalid or unavailable field, show `暂无有效数据` and the failure reason instead of deriving it from another source.
+   - Run `scripts/get_valuation_snapshot.py <FUTU_CODE> --target-price <TARGET_PRICE>` to fetch and calculate the valuation module. This script automatically calls `scripts/ensure_futu_opend.py` first unless `--no-auto-start-opend` is passed. If Futu returns an invalid or unavailable field, show `暂无有效数据` and the failure reason instead of deriving it from another source.
 
 3. Generate a self-contained HTML long-image source.
    - Default width: `1080px`.
@@ -53,6 +59,14 @@ node ~/.codex/skills/structure-research-report/scripts/export_long_images.mjs
 The script prints JSON including `localPng`, `downloadPng`, `openedInPixea`, and `pixea` automation details such as `fullscreen`, `moveTool`, and `warning`.
 
 ## Valuation Snapshot
+
+Open or verify Futu OpenD:
+
+```bash
+python3 ~/.codex/skills/structure-research-report/scripts/ensure_futu_opend.py
+```
+
+Fetch valuation fields. This also auto-starts OpenD when needed:
 
 ```bash
 python3 ~/.codex/skills/structure-research-report/scripts/get_valuation_snapshot.py SH.688222 --target-price 31.60
