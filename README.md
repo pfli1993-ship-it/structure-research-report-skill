@@ -13,6 +13,7 @@ Codex skill for turning broker research PDFs into concise Chinese structured lon
   - 现价格
   - 市值与估值（现市值、目标价对应市值、PE-TTM、PB）
   - 关键催化剂 / 风险
+- Omits company, price, and valuation modules when the report has no specific companies or when all mentioned stocks are in currently unsupported quote markets such as Taiwan or Korea.
 - Generates a self-contained `structured_report*.html`.
 - Exports the HTML into a `1080px` wide PNG long image.
 - Copies the PNG to `~/Downloads`.
@@ -103,6 +104,7 @@ The script prints JSON containing:
 
 - The `<h1>` in the generated HTML is used as the downloaded PNG filename.
 - Pixea automation is best-effort because menu labels and macOS permissions can vary by app version and language.
-- Unsupported market quotes should be shown as unavailable with the exact failure reason instead of silently replacing the quote source.
+- Unsupported market quotes should not be replaced with another source. For Taiwan, Korea, or other currently unsupported markets, omit current-price and valuation modules from the main image; mention the omission briefly in the source note only when useful.
+- If a report does not mention specific companies, do not add placeholder `买入价格`, `现价格`, or `市值与估值` sections. Keep the long image focused on the report thesis, key data, marginal changes, investment implications, and risks.
 - “买入价格” defaults to the broker report target price unless the user specifies another rule.
 - Target-price market cap is an estimate calculated as `current market cap × target price ÷ current price`, assuming the current share count remains unchanged.

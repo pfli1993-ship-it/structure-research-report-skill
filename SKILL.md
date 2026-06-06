@@ -19,8 +19,11 @@ description: 用户上传/拖入研报时自动触发。把券商/投行/研究�
    - Extract the report title, date, author/source, rating, target price, current/report price, key thesis, catalysts, risks, and source notes.
 
 2. Structure the content in Chinese.
-   - For sector/multi-company reports, use sections similar to: `行业背景`, `企业介绍与边际变化`, `价格与评级`, `市值与估值`.
-   - For single-company reports, use: `行业背景`, `企业介绍`, `价格与评级`, `市值与估值`, `边际变化`, `关键催化剂/风险`.
+   - For sector/multi-company reports that mention analyzable companies with usable quote mappings, use sections similar to: `行业背景`, `企业介绍与边际变化`, `价格与评级`, `市值与估值`.
+   - For sector/macro/strategy reports that do not mention specific companies, omit company-specific sections entirely. Do not add placeholder modules such as `企业介绍`, `价格与评级`, `买入价格`, `现价格`, or `市值与估值`; focus the long image on `行业/宏观背景`, `边际变化`, `关键数据`, `投资含义`, and `风险`.
+   - For Taiwan or Korea stocks, or any other market/code that the current Futu helper cannot fetch, omit `现价格`, `市值与估值`, `PE/PB`, and target-market-cap sections from the main body instead of showing “不适用/不支持” cards or tables. Mention the omission briefly in the footer/source note only when useful.
+   - If a report mentions companies but all mentioned stocks are unsupported by the current Futu helper, include only qualitative company/industry impact when it is central to the thesis; do not display price/valuation tables unless the report itself provides enough reliable rating/target-price information and the user explicitly needs it.
+   - For single-company reports with a supported Futu code, use: `行业背景`, `企业介绍`, `价格与评级`, `市值与估值`, `边际变化`, `关键催化剂/风险`.
    - Treat “买入价格” as the broker report target price unless the user states another rule.
    - For “现价格（富途）”, use the `futuapi` skill/script when possible. If the market/code is unsupported or data permission fails, write the exact failure reason and do not substitute another quote source unless the user asks.
    - For stock reports, include a fixed `市值与估值` module with:
