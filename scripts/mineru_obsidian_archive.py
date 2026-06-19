@@ -36,7 +36,7 @@ BROKER_PATTERNS = [
     (r"\bJ\.?\s*P\.?\s*Morgan\b|\bJPMorgan\b|\bJPM\b", "某国际投行"),
     (r"\bCitigroup\b|\bCiti Research\b|\bCITI\b|\bCiti\b", "某国际投行"),
     (r"\bGoldman Sachs\b|\bGoldman\b", "某国际投行"),
-    (r"\bMorgan Stanley\b", "某国际投行"),
+    (r"(?<![A-Za-z])Morgan[\s_]*Stanley", "某国际投行"),
     (r"\bBernstein\b", "某研究机构"),
     (r"\bJefferies\b", "某外资券商"),
     (r"\bNomura\b", "某外资券商"),
@@ -45,7 +45,16 @@ BROKER_PATTERNS = [
     (r"\bHSBC\b", "某国际投行"),
     (r"\bDeutsche Bank\b", "某国际投行"),
     (r"\bBarclays\b", "某国际投行"),
+    (r"MSICPL", "机构印度公司"),
 ]
+
+EMAIL_PATTERN = r"[A-Z0-9._%+-]+@(?:[A-Z0-9.-]+\.[A-Z]{2,}|机构链接)"
+BROKER_URL_PATTERN = (
+    r"(?:https?://)?(?:www\.)?"
+    r"(?:morganstanley|goldmansachs|citi|citigroup|jpmorgan|jpmorganmarkets|bernsteinresearch|"
+    r"jefferies|nomura|ubs|hsbc|dbresearch|barclays|bofa|bankofamerica|matrix\.ms|ny\.matrix\.ms)"
+    r"\.[^\s)\"<>]+"
+)
 
 KEYWORD_SEEDS = [
     "Apple", "AAPL", "Broadcom", "AVGO", "NVIDIA", "NVDA", "AMD", "Oracle", "ORCL",
@@ -55,6 +64,17 @@ KEYWORD_SEEDS = [
     "Optical", "MLCC", "Biopharma", "Healthcare", "Transformer", "Export",
     "tariffs", "China", "Hong Kong", "Taiwan", "Korea",
 ]
+
+KEYWORD_BLOCKLIST = {
+    "机构观点",
+    "报告来源",
+    "valuation methodology and risks",
+    "risks to upside",
+    "risks to downside",
+    "disclosure section",
+    "important disclosures",
+    "analyst certification",
+}
 
 
 @dataclass
@@ -388,6 +408,9 @@ def read_markdown(path: Path) -> str:
 
 
 def anonymize_brokers(text: str) -> str:
+    text = re.sub(EMAIL_PATTERN, "机构邮箱", text, flags=re.IGNORECASE)
+    text = re.sub(BROKER_URL_PATTERN, "机构链接", text, flags=re.IGNORECASE)
+    text = re.sub(EMAIL_PATTERN, "机构邮箱", text, flags=re.IGNORECASE)
     for pattern, replacement in BROKER_PATTERNS:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
     text = re.sub(r"某国际投行['’]S TAKE", "机构观点", text, flags=re.IGNORECASE)
@@ -418,7 +441,7 @@ def clean_keyword(keyword: str) -> str:
 def extract_keywords(markdown: str, user_keywords: Iterable[str], limit: int) -> list[str]:
     found: list[str] = []
     semantic_text = re.split(
-        r"\n##?\s*(?:Appendix|IMPORTANT DISCLOSURES|Important Disclosures|ANALYST CERTIFICATION|Analyst Certification)\b",
+        r"(?:\n##?\s*)?(?:Appendix|IMPORTANT DISCLOSURES|Important Disclosures|ANALYST CERTIFICATION|Analyst Certification|For analyst certification and other important disclosures|Disclosure Section)\b",
         markdown,
         maxsplit=1,
         flags=re.IGNORECASE,
@@ -430,7 +453,7 @@ def extract_keywords(markdown: str, user_keywords: Iterable[str], limit: int) ->
             return
         if re.search(r"某(国际投行|外资券商|研究机构|卖方机构)|TAKE$", value, re.IGNORECASE):
             return
-        if value in {"机构观点", "报告来源"}:
+        if value.lower() in KEYWORD_BLOCKLIST:
             return
         if re.search(r"\b(CFA|Analyst|AC)\b|@|\+\d", value, re.IGNORECASE):
             return
@@ -474,12 +497,13 @@ def extract_keywords(markdown: str, user_keywords: Iterable[str], limit: int) ->
 def frontmatter(title: str, source: Path, conversion: ConversionResult, keywords: list[str]) -> str:
     now = datetime.now().astimezone().isoformat(timespec="seconds")
     escaped_title = title.replace('"', '\\"')
+    safe_source = anonymize_brokers(source.name).replace('"', '\\"')
     tag_line = ", ".join(json.dumps(tag, ensure_ascii=False) for tag in keywords[:10])
     return (
         "---\n"
         f'title: "{escaped_title}"\n'
         "type: research-report\n"
-        f"source_file: \"{str(source).replace(chr(34), chr(92) + chr(34))}\"\n"
+        f"source_file: \"{safe_source}\"\n"
         f"converted_at: {now}\n"
         f"converter: {conversion.method}\n"
         f"mineru_task_id: {conversion.task_id or ''}\n"
