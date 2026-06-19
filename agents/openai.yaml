@@ -1,6 +1,6 @@
 interface:
   display_name: "结构化研报长图"
   short_description: "把研究机构研报结构化为中文长图，并归档 Markdown 到 Obsidian"
-  default_prompt: "Use $structure-research-report to auto-open Futu OpenD when needed, convert PDFs to Markdown with MinerU CLI/API when useful, structure this research report into a Chinese long image, anonymize the publishing institution name in all final outputs, include price and valuation modules only for supported company stocks, omit unsupported or irrelevant company modules, save the PNG to Downloads, open it in Pixea, then archive the Markdown note into Obsidian with the generated long image embedded at the top and keyword wikilinks."
+  default_prompt: "Use $structure-research-report to auto-open Futu OpenD when needed, convert PDFs to Markdown with MinerU CLI/API when useful, structure this research report into a Chinese long image, anonymize the publishing institution name in all final outputs, include price and valuation modules only for supported company stocks, omit unsupported or irrelevant company modules, save the PNG to Downloads without opening an image viewer, then archive the Markdown note into Obsidian with the generated long image embedded at the top and keyword wikilinks."
 policy:
   allow_implicit_invocation: true

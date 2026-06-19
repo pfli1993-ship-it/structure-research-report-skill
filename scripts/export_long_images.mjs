@@ -16,6 +16,7 @@ const cwd = process.cwd();
 const downloadsDir = path.join(os.homedir(), "Downloads");
 const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const pixeaAppName = "Pixea";
+const shouldOpenViewer = process.env.STRUCTURE_REPORT_OPEN_VIEWER === "1";
 const bundledNodeModules = path.join(
   os.homedir(),
   ".cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules",
@@ -188,7 +189,15 @@ async function exportOne(browser, htmlPath) {
 
     await page.screenshot({ path: localPng, fullPage: true });
     await fs.copyFile(localPng, downloadPng);
-    const pixea = await openInPixea(downloadPng);
+    const pixea = shouldOpenViewer
+      ? await openInPixea(downloadPng)
+      : {
+          opened: false,
+          automationAttempted: false,
+          fullscreen: "skipped",
+          moveTool: "skipped",
+          warning: "Viewer opening disabled by default. Set STRUCTURE_REPORT_OPEN_VIEWER=1 to open Pixea.",
+        };
 
     return { htmlPath, title, localPng, downloadPng, openedInPixea: pixea.opened, pixea };
   } finally {

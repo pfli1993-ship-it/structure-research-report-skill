@@ -1,6 +1,6 @@
 ---
 name: structure-research-report
-description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Markdown 研报结构化为中文投资摘要长图，适用于股票、宏观、外汇、行业、生物科技等研报；可用 MinerU CLI/API 自动转换 PDF 为 Markdown，自动提取行业背景、企业介绍、边际变化、目标价、现价格、市值与估值，生成 HTML/PNG，保存到下载文件夹并用 Pixea 打开；同时可把 Markdown 与生成长图归档到 Obsidian 并按关键词建立双链；输出中隐去具体机构名称并模糊化来源。
+description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Markdown 研报结构化为中文投资摘要长图，适用于股票、宏观、外汇、行业、生物科技等研报；可用 MinerU CLI/API 自动转换 PDF 为 Markdown，自动提取行业背景、企业介绍、边际变化、目标价、现价格、市值与估值，生成 HTML/PNG 并保存到下载文件夹；同时可把 Markdown 与生成长图归档到 Obsidian 并按关键词建立双链；输出中隐去具体机构名称并模糊化来源。
 ---
 
 # Structure Research Report
@@ -50,9 +50,10 @@ description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Mark
    - Save as `structured_report_<topic>.html` or another `structured_report*.html` filename in the working directory.
    - Display large market caps in readable local-currency units such as `亿元`, `HKD bn`, or `USD bn`, and keep the original currency explicit.
 
-4. Export, download, and open.
-   - Run `scripts/export_long_images.mjs` from this skill to screenshot HTML into PNG, copy it to `~/Downloads`, rename it from the `<h1>` topic, and open it with Pixea.
-   - After Pixea opens, the script uses best-effort macOS UI automation to enter fullscreen and select Pixea's Hand Tool/move-picture mode. If macOS Accessibility permission blocks automation, the PNG export still succeeds and the JSON warning explains the issue.
+4. Export and download.
+   - Run `scripts/export_long_images.mjs` from this skill to screenshot HTML into PNG, copy it to `~/Downloads`, and rename it from the `<h1>` topic.
+   - Do not automatically open the generated image with Pixea or any other image viewer. The export script skips viewer opening by default.
+   - Only if the user explicitly asks to open the generated image, set `STRUCTURE_REPORT_OPEN_VIEWER=1` before running the export script; in that mode the script opens Pixea and uses best-effort macOS UI automation to enter fullscreen and select Pixea's Hand Tool/move-picture mode.
    - Pass specific HTML files to export only those files, or pass no files to export all `structured_report*.html` in the current directory.
 
 5. Archive Markdown and long image to Obsidian when requested or when the user wants note archival.
@@ -77,7 +78,7 @@ Or export every `structured_report*.html` in the current directory:
 node ~/.codex/skills/structure-research-report/scripts/export_long_images.mjs
 ```
 
-The script prints JSON including `localPng`, `downloadPng`, `openedInPixea`, and `pixea` automation details such as `fullscreen`, `moveTool`, and `warning`.
+The script prints JSON including `localPng`, `downloadPng`, `openedInPixea`, and `pixea` status. By default `openedInPixea` is `false` and the status says viewer opening was skipped.
 
 ## MinerU + Obsidian Archive
 
@@ -128,8 +129,8 @@ The script prints JSON including `last_price`, `market_cap`, `target_market_cap`
 - Confirm current market cap, PE-TTM/static PE, and PB come from the same Futu snapshot as the current price.
 - Recalculate `目标价对应市值 = 现市值 × 目标价 ÷ 现价` and label the unchanged-share-count assumption.
 - Confirm the PNG is non-empty and has width `1080`.
-- Confirm the downloaded PNG exists in `~/Downloads` and `openedInPixea` is `true` when Pixea is installed.
-- Confirm Pixea fullscreen/Hand Tool automation reports `menu` or `shortcut`/`space-fallback`; if it reports `failed`, tell the user to grant Accessibility permission to Codex/Terminal/System Events.
+- Confirm the downloaded PNG exists in `~/Downloads` and `openedInPixea` is `false` unless the user explicitly requested viewer opening.
+- If viewer opening was explicitly requested, confirm Pixea fullscreen/Hand Tool automation reports `menu` or `shortcut`/`space-fallback`; if it reports `failed`, tell the user to grant Accessibility permission to Codex/Terminal/System Events.
 - When Obsidian archival is used, confirm the note exists, the copied long image exists, and the first non-frontmatter Markdown block is an image embed (`![[...]]` or `![...](...)`).
 - Confirm the note contains an `## 自动链接` section with useful `[[关键词]]` links and does not reveal the exact publishing institution name unless explicitly requested.
 - If quote retrieval fails, ensure the long image says why and does not silently replace the source.
