@@ -37,7 +37,10 @@ BROKER_PATTERNS = [
     (r"\bCitigroup\b|\bCiti Research\b|\bCITI\b|\bCiti\b", "某国际投行"),
     (r"\bGoldman Sachs\b|\bGoldman\b", "某国际投行"),
     (r"(?<![A-Za-z])Morgan[\s_]*Stanley", "某国际投行"),
-    (r"\bBernstein\b", "某研究机构"),
+    (r"BERNSTEIN\s*TICKER\s*TABLE|BERNSTEINTICKERTABLE", "报告股票表"),
+    (r"Sanford\s*C\.?\s*Bernstein|AllianceBernstein|AlianceBernstein", "某研究机构"),
+    (r"Bernstein\s*(?:analysis|analyis|anlyis|estimates?)", "某研究机构分析"),
+    (r"Bernstein[A-Za-z]*", "某研究机构"),
     (r"\bJefferies\b", "某外资券商"),
     (r"\bNomura\b", "某外资券商"),
     (r"\bUBS\b", "某国际投行"),
@@ -52,7 +55,8 @@ EMAIL_PATTERN = r"[A-Z0-9._%+-]+@(?:[A-Z0-9.-]+\.[A-Z]{2,}|机构链接)"
 BROKER_URL_PATTERN = (
     r"(?:https?://)?(?:www\.)?"
     r"(?:morganstanley|goldmansachs|citi|citigroup|jpmorgan|jpmorganmarkets|bernsteinresearch|"
-    r"jefferies|nomura|ubs|hsbc|dbresearch|barclays|bofa|bankofamerica|matrix\.ms|ny\.matrix\.ms)"
+    r"bernsteinsg|bernstein|autonomous|jefferies|nomura|ubs|hsbc|dbresearch|barclays|bofa|"
+    r"bankofamerica|matrix\.ms|ny\.matrix\.ms)"
     r"\.[^\s)\"<>]+"
 )
 
