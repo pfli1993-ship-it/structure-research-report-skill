@@ -43,7 +43,7 @@ The valuation helper queries only public market snapshot fields from the user's 
 
 The OpenD helper only checks whether `127.0.0.1:11111` is listening and, if not, opens the local macOS app such as `/Applications/Futu_OpenD.app`. It does not log in, trade, read positions, read orders, or send credentials anywhere.
 
-The MinerU/Obsidian helper reads optional configuration only from environment variables and local Obsidian configuration files. It does not store API tokens in the repository. If `MINERU_API_TOKEN` is used, the source document is uploaded to MinerU's API; otherwise the helper prefers local MinerU CLI when available.
+The MinerU/Obsidian helper reads optional configuration only from environment variables, macOS Keychain, and local Obsidian configuration files. It does not store API tokens, access keys, or secret keys in the repository. If `MINERU_API_TOKEN` is used, the source document is uploaded to MinerU's API; otherwise the helper prefers local MinerU CLI when available.
 
 ## Installation
 
@@ -143,6 +143,7 @@ Optional environment variables:
 - `MINERU_CLI`: absolute path to local MinerU CLI when it is not on `PATH`.
 - `MINERU_CLI_ARGS`: custom CLI template using `{input}` and `{output}` placeholders.
 - `MINERU_API_TOKEN` or `MINERU_TOKEN`: MinerU standard API token.
+- `OPENXLAB_AK` / `OPENXLAB_SK` or `MINERU_ACCESS_KEY` / `MINERU_SECRET_KEY`: OpenDataLab/MinerU CLI credentials. The archive helper also reads these from macOS Keychain service `structure-research-report/mineru`.
 - `MINERU_MODEL_VERSION`: default MinerU API model version, normally `vlm`.
 - `OBSIDIAN_VAULT_PATH`: explicit Obsidian vault path.
 

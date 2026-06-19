@@ -30,6 +30,7 @@ AGENT_API = "https://mineru.net/api/v1/agent"
 DEFAULT_ARCHIVE_DIR = "研报"
 DEFAULT_ATTACHMENT_DIR = "研报附件"
 DEFAULT_KEYWORD_LIMIT = 18
+KEYCHAIN_SERVICE = "structure-research-report/mineru"
 
 BROKER_PATTERNS = [
     (r"\bJ\.?\s*P\.?\s*Morgan\b|\bJPMorgan\b|\bJPM\b", "某国际投行"),
@@ -91,6 +92,52 @@ def request_json(method: str, url: str, **kwargs) -> dict:
     return data
 
 
+def keychain_secret(account: str) -> str:
+    try:
+        completed = subprocess.run(
+            ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", account, "-w"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=5,
+            check=False,
+        )
+    except Exception:
+        return ""
+    if completed.returncode != 0:
+        return ""
+    return completed.stdout.strip()
+
+
+def env_or_keychain(*names: str) -> str:
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    for name in names:
+        value = keychain_secret(name)
+        if value:
+            return value
+    return ""
+
+
+def mineru_cli_env() -> dict[str, str]:
+    env = os.environ.copy()
+    ak = env_or_keychain("OPENXLAB_AK", "MINERU_ACCESS_KEY")
+    sk = env_or_keychain("OPENXLAB_SK", "MINERU_SECRET_KEY")
+    token = env_or_keychain("MINERU_TOKEN", "MINERU_API_TOKEN")
+    if ak:
+        env.setdefault("OPENXLAB_AK", ak)
+        env.setdefault("MINERU_ACCESS_KEY", ak)
+    if sk:
+        env.setdefault("OPENXLAB_SK", sk)
+        env.setdefault("MINERU_SECRET_KEY", sk)
+    if token:
+        env.setdefault("MINERU_TOKEN", token)
+        env.setdefault("MINERU_API_TOKEN", token)
+    return env
+
+
 def download_text(url: str) -> str:
     response = requests.get(url, timeout=120)
     response.raise_for_status()
@@ -150,7 +197,7 @@ def poll_agent_task(task_id: str, timeout_s: int, interval_s: int) -> dict:
 
 
 def convert_with_standard_api(input_path: Path, output_dir: Path, args: argparse.Namespace) -> ConversionResult:
-    token = os.environ.get("MINERU_API_TOKEN") or os.environ.get("MINERU_TOKEN")
+    token = env_or_keychain("MINERU_API_TOKEN", "MINERU_TOKEN")
     if not token:
         raise RuntimeError("MINERU_API_TOKEN is not set.")
 
@@ -220,21 +267,26 @@ def candidate_cli_paths() -> list[str]:
     env_cli = os.environ.get("MINERU_CLI")
     if env_cli:
         values.append(env_cli)
-    for name in ("mineru", "magic-pdf"):
+    for name in ("mineru-open-api", "mineru", "magic-pdf"):
         found = shutil.which(name)
         if found:
             values.append(found)
     home = Path.home()
     for extra in (
         home / ".local/bin/mineru",
+        home / ".local/bin/mineru-open-api",
         home / ".local/bin/magic-pdf",
         home / "miniconda3/bin/mineru",
+        home / "miniconda3/bin/mineru-open-api",
         home / "miniconda3/bin/magic-pdf",
         home / "anaconda3/bin/mineru",
+        home / "anaconda3/bin/mineru-open-api",
         home / "anaconda3/bin/magic-pdf",
         Path("/opt/homebrew/bin/mineru"),
+        Path("/opt/homebrew/bin/mineru-open-api"),
         Path("/opt/homebrew/bin/magic-pdf"),
         Path("/usr/local/bin/mineru"),
+        Path("/usr/local/bin/mineru-open-api"),
         Path("/usr/local/bin/magic-pdf"),
     ):
         if extra.exists():
@@ -252,7 +304,12 @@ def cli_command_variants(exe: str, input_path: Path, output_dir: Path, args: arg
     user_args = os.environ.get("MINERU_CLI_ARGS")
     if user_args:
         variants.append([exe, *user_args.format(input=str(input_path), output=str(output_dir)).split()])
-    if "magic-pdf" in base:
+    if "mineru-open-api" in base:
+        variants.extend([
+            [exe, "extract", str(input_path), "-o", str(output_dir), "--timeout", str(args.timeout)],
+            [exe, "flash-extract", str(input_path), "-o", str(output_dir), "--timeout", str(min(args.timeout, 300))],
+        ])
+    elif "magic-pdf" in base:
         variants.extend([
             [exe, "-p", str(input_path), "-o", str(output_dir), "-m", "auto"],
             [exe, "pdf-command", "--pdf", str(input_path), "--output-dir", str(output_dir), "--method", "auto"],
@@ -269,6 +326,7 @@ def cli_command_variants(exe: str, input_path: Path, output_dir: Path, args: arg
 
 def convert_with_cli(input_path: Path, output_dir: Path, args: argparse.Namespace) -> ConversionResult:
     errors = []
+    cli_env = mineru_cli_env()
     for exe in candidate_cli_paths():
         for cmd in cli_command_variants(exe, input_path, output_dir, args):
             run_dir = output_dir / f"cli_{len(errors)}"
@@ -280,6 +338,7 @@ def convert_with_cli(input_path: Path, output_dir: Path, args: argparse.Namespac
                     text=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
+                    env=cli_env,
                     timeout=args.cli_timeout,
                     check=False,
                 )

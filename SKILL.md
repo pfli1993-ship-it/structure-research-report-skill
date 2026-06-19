@@ -17,7 +17,8 @@ description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Mark
    - If the user provides an existing MinerU Markdown file, read it directly.
    - If the user provides a PDF or other document file and asks for archive/Markdown workflow, run `scripts/mineru_obsidian_archive.py <file> --long-image <png>` after the long image is generated. The script prefers local MinerU CLI, then falls back to MinerU standard API when `MINERU_API_TOKEN`/`MINERU_TOKEN` is set, then to the lightweight Agent API.
    - If local MinerU CLI is installed outside PATH, set `MINERU_CLI=/absolute/path/to/mineru` or `MINERU_CLI_ARGS` for a custom command template containing `{input}` and `{output}`.
-   - Never hard-code MinerU tokens, Obsidian paths, or any private CLI credentials in the skill. Read tokens only from environment variables.
+   - MinerU/OpenDataLab credentials can be supplied via environment variables (`MINERU_TOKEN`, `MINERU_API_TOKEN`, `OPENXLAB_AK`, `OPENXLAB_SK`, `MINERU_ACCESS_KEY`, `MINERU_SECRET_KEY`) or macOS Keychain service `structure-research-report/mineru` with the same account names.
+   - Never hard-code MinerU tokens, access keys, secret keys, Obsidian paths, or any private CLI credentials in the skill. Read credentials only from environment variables or macOS Keychain.
    - If MinerU conversion fails or is unavailable, use `pdfplumber`/`pypdf` when text extraction works.
    - For image-only PDFs, render pages with `pdftoppm` and visually inspect/OCR the most relevant pages.
    - Extract the report title, date, author/source, rating, target price, current/report price, key thesis, catalysts, risks, and source notes.
@@ -101,6 +102,7 @@ Environment variables:
 - `MINERU_CLI`: optional absolute path to the local MinerU CLI.
 - `MINERU_CLI_ARGS`: optional custom command template with `{input}` and `{output}`.
 - `MINERU_API_TOKEN` or `MINERU_TOKEN`: optional MinerU standard API token.
+- `OPENXLAB_AK` / `OPENXLAB_SK` or `MINERU_ACCESS_KEY` / `MINERU_SECRET_KEY`: optional OpenDataLab/MinerU CLI credentials. The archive script also reads these from macOS Keychain service `structure-research-report/mineru`.
 - `OBSIDIAN_VAULT_PATH`: Obsidian vault path for direct archival.
 
 ## Valuation Snapshot
