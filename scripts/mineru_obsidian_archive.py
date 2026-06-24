@@ -33,10 +33,23 @@ DEFAULT_KEYWORD_LIMIT = 18
 KEYCHAIN_SERVICE = "structure-research-report/mineru"
 
 BROKER_PATTERNS = [
-    (r"\bJ\.?\s*P\.?\s*Morgan\b|\bJPMorgan\b|\bJPM\b", "某国际投行"),
+    (r"\bJ\.?\s*P\.?\s*Morgan\b|\bJ\s*P\s*M\s*O\s*R\s*G\s*A\s*N\b|\bJPMorgan\b|\bJPM\b", "某国际投行"),
+    (r"\bJPMSAL\b|\bJPMSS\b|\bJPMCB\b|\bJPMS\b|\bJPMML\b", "机构实体"),
+    (r"\bMio\s+Shikanai\b|\bJay\s+Kwon\b|\bSangsik\s+Lee\b|\bNeelay\s+Y\s+Kamath\b", "报告分析师"),
+    (r"\bShikanai,\s*Mio\b|\bKwon,\s*Jay\b", "报告分析师"),
+    (r"\bGokul\s+Hariharan(?:\s+AC)?\b|\bJennifer\s+Hsieh\b|\bDavid\s+Chou\b|\bJason\s+(?:B\.?H\.?\s*)?Chen\b|\bSubham\s+Singhania\b", "报告分析师"),
     (r"\bCitigroup\b|\bCiti Research\b|\bCITI\b|\bCiti\b", "某国际投行"),
-    (r"\bGoldman Sachs\b|\bGoldman\b", "某国际投行"),
+    (r"\bKaren\s+Huang(?:\s+AC)?\b|\bKyna\s+Wong\b|\bKevin\s+Chen\b|\bYiming\s+Li(?:,\s*CFA)?\b", "报告分析师"),
+    (r"\bYuta\s+Nishiyama(?:\s+AC)?\b", "报告分析师"),
+    (r"\bLydia\s+Ling(?:AC)?\b|\bXiaopo\s+Wei(?:,\s*CFA)?\b|\bBrian\s+Cho\b", "报告分析师"),
+    (r"\bJeff\s+Chung(?:\s+AC)?\b|\bKyle\s+Wu\b", "报告分析师"),
+    (r"\bGoldman\s*Sachs\b|\bGoldmanSachs\b|\bGoldmanachs\b|\bGoldmaSachs\b|\bGoldmanaci\b|\bGoldmanacf\b|\bGoldanSachs\b|\bGoldanachs\b|\bGodmanachs\b|\bGodmanSachs\b|\bGdmanSach\b|\bGdmanach\b|\bGmanch\b|\bSachsGlobal\b|\bSachs\w*\b|\bGoldman\b", "某国际投行"),
+    (r"\bAllen\s*Chang\b|\bAllenChang\b|\bVerena\s*Jeng\b|\bVerena\s*Jng\b|\bVerenaJeng\b|\bVerenaJng\b|\bYifan\s*Hu\b|\bYifanHu\b", "报告分析师"),
     (r"(?<![A-Za-z])Morgan[\s_]*Stanley", "某国际投行"),
+    (r"\binMorgan\s*Stanley\s*Research\b|\bMorgan\s*Stanley\s*Research\b", "某国际投行 Research"),
+    (r"\bSamuel\s+Lee(?:,\s*CFA)?\b|\bHozefa\s+Topiwalla\b|\bShane\s+Brett\b|\bJoseph\s+Moore\b|\bMason\s+Wayne\b|\bElla\s+Tulchinsky\b|\bNicole\s+Kozhukhov\b", "报告分析师"),
+    (r"\bMark\s+L\.?\s+Moerdler(?:,\s*Ph\.?D\.?)?\b|\bMark\s+Shmulik\b|\bRobin\s+Zhu\b|\bMadison\s+Rezaei\b|\bFiroz\s+Valliji(?:,\s*CFA)?\b|\bShelly\s*T\s*ang(?:,\s*CFA)?\b|\bDeeksha\s+Pandey\b|\bWenhuan\s+Chang\b|\bCharles\s+Gou\b|\bNancy\s+Wu\b", "报告分析师"),
+    (r"\bDaniel\s+Yen(?:,\s*CFA)?\b|\bCharlie\s+Chan\b|\bDaisy\s+Dai(?:,\s*CFA)?\b|\bTiffany\s+Yeh\b|\bLucas\s+Wang\b|\bEthan\s+Jia\b", "报告分析师"),
     (r"BERNSTEIN\s*TICKER\s*TABLE|BERNSTEINTICKERTABLE", "报告股票表"),
     (r"Sanford\s*C\.?\s*Bernstein|AllianceBernstein|AlianceBernstein", "某研究机构"),
     (r"Bernstein\s*(?:analysis|analyis|anlyis|estimates?)", "某研究机构分析"),
@@ -49,15 +62,21 @@ BROKER_PATTERNS = [
     (r"\bDeutsche Bank\b", "某国际投行"),
     (r"\bBarclays\b", "某国际投行"),
     (r"MSICPL", "机构印度公司"),
+    (r"\bMS[-_](?=[A-Z][A-Za-z])", ""),
 ]
 
 EMAIL_PATTERN = r"[A-Z0-9._%+-]+@(?:[A-Z0-9.-]+\.[A-Z]{2,}|机构链接)"
 BROKER_URL_PATTERN = (
     r"(?:https?://)?(?:www\.)?"
-    r"(?:morganstanley|goldmansachs|citi|citigroup|jpmorgan|jpmorganmarkets|bernsteinresearch|"
+    r"(?:morganstanley|goldmansachs|gs|citi|citigroup|jpmorgan|jpmorganmarkets|jpmm|bernsteinresearch|"
     r"bernsteinsg|bernstein|autonomous|jefferies|nomura|ubs|hsbc|dbresearch|barclays|bofa|"
     r"bankofamerica|matrix\.ms|ny\.matrix\.ms)"
     r"\.[^\s)\"<>]+"
+)
+
+DISCLOSURE_SPLIT_PATTERN = (
+    r"\n\s*##?\s*(?:Disclosure Appendix|DISCLOSURE APPENDIX|I\.\s*REQUIRED DISCLOSURES|IMPORTANT DISCLOSURES|Important Disclosures|"
+    r"ANALYST CERTIFICATION|Analyst Certification)\b"
 )
 
 KEYWORD_SEEDS = [
@@ -412,11 +431,18 @@ def read_markdown(path: Path) -> str:
 
 
 def anonymize_brokers(text: str) -> str:
+    text = re.split(DISCLOSURE_SPLIT_PATTERN, text, maxsplit=1, flags=re.IGNORECASE)[0]
+    text = re.sub(r"<table\b[^>]*>.*?(?:Equity Analyst|Research Associate).*?</table>", "", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"\+?\d[\d\s().-]{7,}\d", "机构电话", text)
+    text = re.sub(r"^报告分析师\s+机构电话\s+机构邮箱\s+\d{1,2}\s+\w+\s+\d{4}\s*$", "", text, flags=re.IGNORECASE | re.MULTILINE)
+    text = re.sub(r"For analyst certification and other important disclosures,.*?(?:\n|$)", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"For important disclosures, stock price charts.*?(?:\n|$)", "", text, flags=re.IGNORECASE)
     text = re.sub(EMAIL_PATTERN, "机构邮箱", text, flags=re.IGNORECASE)
     text = re.sub(BROKER_URL_PATTERN, "机构链接", text, flags=re.IGNORECASE)
     text = re.sub(EMAIL_PATTERN, "机构邮箱", text, flags=re.IGNORECASE)
     for pattern, replacement in BROKER_PATTERNS:
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    text = re.sub(r"\bGS\s*(Forecast|Factor Profile|vs\.?\s*Bloomberg consensus)\b", r"机构\1", text, flags=re.IGNORECASE)
     text = re.sub(r"某国际投行['’]S TAKE", "机构观点", text, flags=re.IGNORECASE)
     text = re.sub(r"某研究机构['’]S TAKE", "机构观点", text, flags=re.IGNORECASE)
     return text
@@ -498,8 +524,9 @@ def extract_keywords(markdown: str, user_keywords: Iterable[str], limit: int) ->
     return found[:limit]
 
 
-def frontmatter(title: str, source: Path, conversion: ConversionResult, keywords: list[str]) -> str:
-    now = datetime.now().astimezone().isoformat(timespec="seconds")
+def frontmatter(title: str, source: Path, conversion: ConversionResult, keywords: list[str], archived_at: datetime | None = None) -> str:
+    archive_time = archived_at or datetime.now().astimezone()
+    now = archive_time.isoformat(timespec="seconds")
     escaped_title = title.replace('"', '\\"')
     safe_source = anonymize_brokers(source.name).replace('"', '\\"')
     tag_line = ", ".join(json.dumps(tag, ensure_ascii=False) for tag in keywords[:10])
@@ -508,6 +535,7 @@ def frontmatter(title: str, source: Path, conversion: ConversionResult, keywords
         f'title: "{escaped_title}"\n'
         "type: research-report\n"
         f"source_file: \"{safe_source}\"\n"
+        f"archived_at: {now}\n"
         f"converted_at: {now}\n"
         f"converter: {conversion.method}\n"
         f"mineru_task_id: {conversion.task_id or ''}\n"
@@ -545,8 +573,9 @@ def compose_note(
     conversion: ConversionResult,
     keywords: list[str],
     image_embed: str,
+    archived_at: datetime | None = None,
 ) -> str:
-    parts = [frontmatter(title, source, conversion, keywords)]
+    parts = [frontmatter(title, source, conversion, keywords, archived_at)]
     if image_embed:
         parts.append(f"{image_embed}\n\n---\n\n")
     parts.append(add_link_index(markdown, keywords))
@@ -604,10 +633,19 @@ def archive_to_obsidian(markdown: str, title: str, source: Path, conversion: Con
         archive_root = source.parent / args.archive_dir
     archive_root.mkdir(parents=True, exist_ok=True)
 
-    note_name = sanitize_filename(title, source.stem) + ".md"
+    archived_at = datetime.now().astimezone()
+    time_prefix = archived_at.strftime("%Y%m%d-%H%M%S")
+    note_name = f"{time_prefix} {sanitize_filename(title, source.stem)}.md"
     note_path = archive_root / note_name
+    if note_path.exists():
+        stem = note_path.stem
+        suffix = note_path.suffix
+        counter = 2
+        while note_path.exists():
+            note_path = archive_root / f"{stem}-{counter}{suffix}"
+            counter += 1
     image_embed = copy_long_image(args.long_image, note_path, vault, args.attachment_dir)
-    body = compose_note(markdown, title, source, conversion, keywords, image_embed)
+    body = compose_note(markdown, title, source, conversion, keywords, image_embed, archived_at)
     note_path.write_text(body, encoding="utf-8")
     return note_path
 
