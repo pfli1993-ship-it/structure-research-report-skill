@@ -483,7 +483,7 @@ def html_to_markdown(html: str) -> str:
 def anonymize_brokers(text: str) -> str:
     text = re.split(DISCLOSURE_SPLIT_PATTERN, text, maxsplit=1, flags=re.IGNORECASE)[0]
     text = re.sub(r"<table\b[^>]*>.*?(?:Equity Analyst|Research Associate).*?</table>", "", text, flags=re.IGNORECASE | re.DOTALL)
-    text = re.sub(r"\+?\d[\d\s().-]{7,}\d", "机构电话", text)
+    text = re.sub(r"(?:\+\d{1,3}[\s().-]*)?(?:\(?\d{2,4}\)?[\s.-]+){2,}\d{3,4}", "机构电话", text)
     text = re.sub(r"^报告分析师\s+机构电话\s+机构邮箱\s+\d{1,2}\s+\w+\s+\d{4}\s*$", "", text, flags=re.IGNORECASE | re.MULTILINE)
     text = re.sub(r"For analyst certification and other important disclosures,.*?(?:\n|$)", "", text, flags=re.IGNORECASE)
     text = re.sub(r"For important disclosures, stock price charts.*?(?:\n|$)", "", text, flags=re.IGNORECASE)
