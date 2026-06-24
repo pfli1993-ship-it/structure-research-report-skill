@@ -123,7 +123,7 @@ python3 ~/.codex/skills/structure-research-report/scripts/mineru_obsidian_archiv
   --long-image structured_report_example_long.png
 ```
 
-The archive helper uses `OBSIDIAN_VAULT_PATH` when set. If it is unset, it reads Obsidian's local `obsidian.json` and uses the currently open or most recent vault. Notes are saved under `研报` by default; PNG attachments are copied under `研报附件`.
+The archive helper uses `OBSIDIAN_VAULT_PATH` when set. If it is unset, it reads Obsidian's local `obsidian.json` and uses the currently open or most recent vault. Notes are saved under date folders in `研报/YYYY/MM/DD/` by default; PNG attachments are copied under `研报附件`.
 
 The script prints JSON containing:
 

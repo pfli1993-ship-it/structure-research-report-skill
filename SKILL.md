@@ -87,7 +87,7 @@ description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Mark
 
 5. Always archive Markdown and long image to Obsidian after export, unless the user explicitly asks not to archive.
    - Run `scripts/mineru_obsidian_archive.py <source-pdf-or-md> --long-image <local-or-download-png>` after `export_long_images.mjs` succeeds. Prefer the downloaded PNG path from the export JSON when available; otherwise use the local long-image PNG.
-   - Set `OBSIDIAN_VAULT_PATH=/path/to/vault` to archive directly into the user's vault. If it is unset, the script reads Obsidian's local `obsidian.json` and uses the currently open or most recent vault when available. The default note folder is `研报`; copied PNG attachments go to `研报附件`.
+   - Set `OBSIDIAN_VAULT_PATH=/path/to/vault` to archive directly into the user's vault. If it is unset, the script reads Obsidian's local `obsidian.json` and uses the currently open or most recent vault when available. The default note base folder is `研报`; each archived note is saved under a date folder in `YYYY/MM/DD` format, such as `研报/2026/06/24/`; copied PNG attachments go to `研报附件`.
    - The archived note filename must start with archive time in `YYYYMMDD-HHMMSS ` format, followed by the sanitized report title, so Obsidian file-name sorting matches archive chronology. The note frontmatter must also include `archived_at`.
    - The archived note must put the generated long image at the very top of the Markdown body, immediately after YAML frontmatter, so opening the note shows the long image first.
    - The script adds an `## 自动链接` section with `[[关键词]]` links derived from tickers, company names, themes, and user-provided keywords. Pass `--keywords "Apple,AAPL,WWDC"` to force links.
@@ -185,7 +185,7 @@ The script prints JSON including `snapshot`, `analyst_consensus`, `technical`, `
 - Confirm the downloaded PNG exists in `~/Downloads` and `openedInPixea` is `false` unless the user explicitly requested viewer opening.
 - If viewer opening was explicitly requested, confirm Pixea fullscreen/Hand Tool automation reports `menu` or `shortcut`/`space-fallback`; if it reports `failed`, tell the user to grant Accessibility permission to Codex/Terminal/System Events.
 - Confirm Obsidian archival was run by default after export unless the user explicitly opted out.
-- Confirm the archived note filename starts with `YYYYMMDD-HHMMSS ` and frontmatter includes `archived_at`, so archive ordering can follow archive time.
+- Confirm the archived note is saved under the date folder `研报/YYYY/MM/DD/`, its filename starts with `YYYYMMDD-HHMMSS `, and frontmatter includes `archived_at`, so archive ordering can follow archive time.
 - Confirm the note exists, the copied long image exists, and the first non-frontmatter Markdown block is an image embed (`![[...]]` or `![...](...)`).
 - Confirm the note contains an `## 自动链接` section with useful `[[关键词]]` links and does not reveal the exact publishing institution name unless explicitly requested.
 - Confirm the archived Markdown does not retain exact analyst names, broker entity abbreviations such as `JPMS`, or broker disclosure URLs after MinerU conversion.

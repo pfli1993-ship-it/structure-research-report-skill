@@ -625,15 +625,16 @@ def discover_vault(explicit: str | None) -> Path | None:
 def archive_to_obsidian(markdown: str, title: str, source: Path, conversion: ConversionResult, keywords: list[str], args: argparse.Namespace) -> Path:
     vault = discover_vault(args.vault)
     destination_root = Path(args.output_dir).expanduser() if args.output_dir else None
+    archived_at = datetime.now().astimezone()
     if vault:
-        archive_root = vault / args.archive_dir
+        base_archive_root = vault / args.archive_dir
     elif destination_root:
-        archive_root = destination_root / args.archive_dir
+        base_archive_root = destination_root / args.archive_dir
     else:
-        archive_root = source.parent / args.archive_dir
+        base_archive_root = source.parent / args.archive_dir
+    archive_root = base_archive_root / archived_at.strftime("%Y") / archived_at.strftime("%m") / archived_at.strftime("%d")
     archive_root.mkdir(parents=True, exist_ok=True)
 
-    archived_at = datetime.now().astimezone()
     time_prefix = archived_at.strftime("%Y%m%d-%H%M%S")
     note_name = f"{time_prefix} {sanitize_filename(title, source.stem)}.md"
     note_path = archive_root / note_name
