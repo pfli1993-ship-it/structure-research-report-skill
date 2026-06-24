@@ -1,6 +1,6 @@
 ---
 name: structure-research-report
-description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Markdown 研报结构化为中文投资摘要长图，适用于股票、宏观、外汇、行业、生物科技等研报；可用 MinerU CLI/API 自动转换 PDF 为 Markdown，自动提取行业背景、企业介绍、边际变化、目标价、现价格、市值与估值，并用富途 OpenAPI 补充推荐个股的近期重大事件、新闻公告、讨论温度、技术异动、资金异动与近一月走势图，生成 HTML/PNG 并保存到下载文件夹；同时可把 Markdown 与生成长图归档到 Obsidian 并按关键词建立双链；输出中隐去具体机构名称并模糊化来源。
+description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Markdown 研报结构化为中文投资摘要长图，适用于股票、宏观、外汇、行业、生物科技等研报；从源文件提取必要投资内容，自动生成 HTML/PNG 并保存到下载文件夹；归档到 Obsidian 时只保存生成长图及长图对应的结构化内容，不再把整份 PDF 转换成 Markdown；可用富途 OpenAPI 补充推荐个股的近期重大事件、新闻公告、讨论温度、技术异动、资金异动与近一月走势图；输出中隐去具体机构名称并模糊化来源。
 ---
 
 # Structure Research Report
@@ -9,6 +9,7 @@ description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Mark
 
 - Default to `快处理模式` unless the user explicitly asks for `深度处理`, `慢处理`, `完整处理`, `补充最新行情`, `补充新闻`, `雪球情绪`, `富途事件脉冲`, or similar expanded research.
 - In fast mode, prioritize getting from the source report to the Chinese structured HTML/PNG and Obsidian archive quickly. Use the report's own disclosed facts, tables, ratings, target prices, and valuation context first.
+- Obsidian archive policy: archive the generated long image plus the long-image structured content only. Do not convert or paste the full PDF into the archived Markdown note unless the user explicitly asks for a full-PDF Markdown conversion.
 - In fast mode, automatically skip non-core boilerplate before structuring: appendices, legal disclaimers, disclosure appendix, analyst certification, required disclosures, rating-history tables, methodology/legal notices, contact directories, global research office lists, copyright pages, and duplicated OCR/table fragments that do not affect the investment thesis.
 - In fast mode, skip optional post-report market pulse work by default: do not browse for current news, do not search 雪球/community discussion, and do not expand recent-event, sentiment, technical/funds-flow interpretation cards unless explicitly requested.
 - In fast mode, Futu current-price/valuation data and the `近一个月走势图` may be included for supported single-company or recommended-stock modules when they can be fetched quickly. If quote or chart lookup is slow, unsupported, or permission-limited, omit the module or state the exact limitation compactly instead of blocking the long-image workflow.
@@ -23,8 +24,9 @@ description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Mark
    - If OpenD cannot be found or the port does not become reachable, continue the report workflow and write the exact failure reason in the Futu price/valuation fields.
 
 1. Read or convert the report first.
-   - If the user provides an existing MinerU Markdown file, read it directly.
-   - If the user provides a PDF or other document file, plan to run `scripts/mineru_obsidian_archive.py <file> --long-image <png>` after the long image is generated, unless the user explicitly asks not to archive to Obsidian. The script prefers local MinerU CLI, then falls back to MinerU standard API when `MINERU_API_TOKEN`/`MINERU_TOKEN` is set, then to the lightweight Agent API.
+   - If the user provides an existing Markdown file, read it directly.
+   - If the user provides a PDF or other document file, extract only the report content needed to build the structured long image. Use PDF text extraction, selective page rendering, OCR, visual inspection, or MinerU only as source-reading aids when necessary.
+   - Do not plan to convert the entire PDF to Markdown for Obsidian archival. After the long image is generated, archive with `scripts/mineru_obsidian_archive.py <source-file> --long-image <png> --content-html <structured_report.html>` or `--content-md <structured_summary.md>` so the note body mirrors the generated long-image content.
    - If local MinerU CLI is installed outside PATH, set `MINERU_CLI=/absolute/path/to/mineru` or `MINERU_CLI_ARGS` for a custom command template containing `{input}` and `{output}`.
    - MinerU/OpenDataLab credentials can be supplied via environment variables (`MINERU_TOKEN`, `MINERU_API_TOKEN`, `OPENXLAB_AK`, `OPENXLAB_SK`, `MINERU_ACCESS_KEY`, `MINERU_SECRET_KEY`) or macOS Keychain service `structure-research-report/mineru` with the same account names.
    - Never hard-code MinerU tokens, access keys, secret keys, Obsidian paths, or any private CLI credentials in the skill. Read credentials only from environment variables or macOS Keychain.
@@ -85,9 +87,10 @@ description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Mark
    - Only if the user explicitly asks to open the generated image, set `STRUCTURE_REPORT_OPEN_VIEWER=1` before running the export script; in that mode the script opens Pixea and uses best-effort macOS UI automation to enter fullscreen and select Pixea's Hand Tool/move-picture mode.
    - Pass specific HTML files to export only those files, or pass no files to export all `structured_report*.html` in the current directory.
 
-5. Always archive Markdown and long image to Obsidian after export, unless the user explicitly asks not to archive.
-   - Run `scripts/mineru_obsidian_archive.py <source-pdf-or-md> --long-image <local-or-download-png>` after `export_long_images.mjs` succeeds. Prefer the downloaded PNG path from the export JSON when available; otherwise use the local long-image PNG.
-   - Set `OBSIDIAN_VAULT_PATH=/path/to/vault` to archive directly into the user's vault. If it is unset, the script reads Obsidian's local `obsidian.json` and uses the currently open or most recent vault when available. The default note base folder is `研报`; each archived note is saved under a date folder in `YYYY/MM/DD` format, such as `研报/2026/06/24/`; copied PNG attachments go to `研报附件`.
+5. Always archive the long image and its structured content to Obsidian after export, unless the user explicitly asks not to archive.
+   - Run `scripts/mineru_obsidian_archive.py <source-pdf-or-md> --long-image <local-or-download-png> --content-html <structured_report.html>` after `export_long_images.mjs` succeeds. Prefer the downloaded PNG path from the export JSON when available; otherwise use the local long-image PNG.
+   - The archived Markdown body must be converted from the generated long-image HTML/Markdown content. It must not contain a full PDF-to-Markdown dump, full OCR text, disclosure appendix, or pages that were not used in the structured long image.
+   - Always archive into the user's fixed Obsidian vault by default: `/Users/lipengfei/Library/Mobile Documents/iCloud~md~obsidian/Documents/老学长带带我/研报仓库`. The archive script has this path locked as its first default candidate. Set `OBSIDIAN_VAULT_PATH=/path/to/vault` only when the user explicitly asks to override it. The default note base folder is `研报`; each archived note is saved under a date folder in `YYYY/MM/DD` format, such as `研报/2026/06/24/`; copied PNG attachments go to `研报附件`.
    - The archived note filename must start with archive time in `YYYYMMDD-HHMMSS ` format, followed by the sanitized report title, so Obsidian file-name sorting matches archive chronology. The note frontmatter must also include `archived_at`.
    - The archived note must put the generated long image at the very top of the Markdown body, immediately after YAML frontmatter, so opening the note shows the long image first.
    - The script adds an `## 自动链接` section with `[[关键词]]` links derived from tickers, company names, themes, and user-provided keywords. Pass `--keywords "Apple,AAPL,WWDC"` to force links.
@@ -111,31 +114,35 @@ node ~/.codex/skills/structure-research-report/scripts/export_long_images.mjs
 
 The script prints JSON including `localPng`, `downloadPng`, `openedInPixea`, and `pixea` status. By default `openedInPixea` is `false` and the status says viewer opening was skipped.
 
-## MinerU + Obsidian Archive
+## Structured Content + Obsidian Archive
 
-Archive an existing MinerU Markdown file and put a generated long image at the top:
-
-```bash
-OBSIDIAN_VAULT_PATH="/path/to/ObsidianVault" \
-python3 ~/.codex/skills/structure-research-report/scripts/mineru_obsidian_archive.py report.md \
-  --long-image structured_report_example_long.png \
-  --keywords "Apple,AAPL,WWDC"
-```
-
-Convert a PDF with local MinerU CLI/API, archive the resulting Markdown, copy the long image into the vault, and open Obsidian:
+Archive generated long-image HTML and put the generated long image at the top:
 
 ```bash
 OBSIDIAN_VAULT_PATH="/path/to/ObsidianVault" \
 python3 ~/.codex/skills/structure-research-report/scripts/mineru_obsidian_archive.py report.pdf \
-  --long-image structured_report_example_long.png
+  --long-image structured_report_example_long.png \
+  --content-html structured_report_example.html \
+  --keywords "Apple,AAPL,WWDC"
 ```
+
+Archive into the user's fixed vault, copying the long image and using only the generated structured content as the note body:
+
+```bash
+OBSIDIAN_VAULT_PATH="/Users/lipengfei/Library/Mobile Documents/iCloud~md~obsidian/Documents/老学长带带我/研报仓库" \
+python3 ~/.codex/skills/structure-research-report/scripts/mineru_obsidian_archive.py report.pdf \
+  --long-image structured_report_example_long.png \
+  --content-html structured_report_example.html
+```
+
+Legacy full-file MinerU conversion remains available only when `--content-html` and `--content-md` are both omitted, or when the user explicitly asks for full PDF Markdown conversion.
 
 Environment variables:
 - `MINERU_CLI`: optional absolute path to the local MinerU CLI.
 - `MINERU_CLI_ARGS`: optional custom command template with `{input}` and `{output}`.
 - `MINERU_API_TOKEN` or `MINERU_TOKEN`: optional MinerU standard API token.
 - `OPENXLAB_AK` / `OPENXLAB_SK` or `MINERU_ACCESS_KEY` / `MINERU_SECRET_KEY`: optional OpenDataLab/MinerU CLI credentials. The archive script also reads these from macOS Keychain service `structure-research-report/mineru`.
-- `OBSIDIAN_VAULT_PATH`: Obsidian vault path for direct archival.
+- `OBSIDIAN_VAULT_PATH`: optional override for direct archival. Leave unset to use `/Users/lipengfei/Library/Mobile Documents/iCloud~md~obsidian/Documents/老学长带带我/研报仓库`.
 
 ## Valuation Snapshot
 
@@ -188,5 +195,6 @@ The script prints JSON including `snapshot`, `analyst_consensus`, `technical`, `
 - Confirm the archived note is saved under the date folder `研报/YYYY/MM/DD/`, its filename starts with `YYYYMMDD-HHMMSS `, and frontmatter includes `archived_at`, so archive ordering can follow archive time.
 - Confirm the note exists, the copied long image exists, and the first non-frontmatter Markdown block is an image embed (`![[...]]` or `![...](...)`).
 - Confirm the note contains an `## 自动链接` section with useful `[[关键词]]` links and does not reveal the exact publishing institution name unless explicitly requested.
-- Confirm the archived Markdown does not retain exact analyst names, broker entity abbreviations such as `JPMS`, or broker disclosure URLs after MinerU conversion.
+- Confirm the archived Markdown comes from `--content-html` or `--content-md` long-image content rather than a full PDF-to-Markdown conversion, unless the user explicitly requested full conversion.
+- Confirm the archived Markdown does not retain exact analyst names, broker entity abbreviations such as `JPMS`, or broker disclosure URLs.
 - If quote retrieval fails, ensure the long image says why and does not silently replace the source.

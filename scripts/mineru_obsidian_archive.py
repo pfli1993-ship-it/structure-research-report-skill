@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Convert research files to Markdown with MinerU and archive them into Obsidian."""
+"""Archive structured long-image research content into Obsidian.
+
+By default this script archives the generated long-image content instead of
+converting the full source PDF to Markdown. Full-file MinerU conversion remains
+available as a legacy fallback when no structured content file is supplied.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +21,7 @@ import urllib.parse
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime
+from html import unescape
 from pathlib import Path
 from typing import Iterable
 
@@ -31,6 +37,10 @@ DEFAULT_ARCHIVE_DIR = "研报"
 DEFAULT_ATTACHMENT_DIR = "研报附件"
 DEFAULT_KEYWORD_LIMIT = 18
 KEYCHAIN_SERVICE = "structure-research-report/mineru"
+DEFAULT_OBSIDIAN_VAULT = (
+    Path.home()
+    / "Library/Mobile Documents/iCloud~md~obsidian/Documents/老学长带带我/研报仓库"
+)
 
 BROKER_PATTERNS = [
     (r"\bJ\.?\s*P\.?\s*Morgan\b|\bJ\s*P\s*M\s*O\s*R\s*G\s*A\s*N\b|\bJPMorgan\b|\bJPM\b", "某国际投行"),
@@ -430,6 +440,46 @@ def read_markdown(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
+def read_structured_content(args: argparse.Namespace) -> tuple[str, ConversionResult] | None:
+    if args.content_md:
+        content_path = Path(args.content_md).expanduser().resolve()
+        if not content_path.exists():
+            raise FileNotFoundError(f"Structured Markdown content not found: {content_path}")
+        return read_markdown(content_path), ConversionResult(
+            markdown_path=content_path,
+            method="structured-content-md",
+        )
+    if args.content_html:
+        content_path = Path(args.content_html).expanduser().resolve()
+        if not content_path.exists():
+            raise FileNotFoundError(f"Structured HTML content not found: {content_path}")
+        html = content_path.read_text(encoding="utf-8", errors="replace")
+        return html_to_markdown(html), ConversionResult(
+            markdown_path=content_path,
+            method="structured-content-html",
+        )
+    return None
+
+
+def html_to_markdown(html: str) -> str:
+    text = re.sub(r"(?is)<(script|style)\b[^>]*>.*?</\1>", "", html)
+    text = re.sub(r"(?is)<!doctype[^>]*>", "", text)
+    text = re.sub(r"(?is)<title[^>]*>(.*?)</title>", r"# \1\n\n", text, count=1)
+    text = re.sub(r"(?is)<h1[^>]*>(.*?)</h1>", r"# \1\n\n", text)
+    text = re.sub(r"(?is)<h2[^>]*>(.*?)</h2>", r"## \1\n\n", text)
+    text = re.sub(r"(?is)<h3[^>]*>(.*?)</h3>", r"### \1\n\n", text)
+    text = re.sub(r"(?is)<li[^>]*>(.*?)</li>", r"- \1\n", text)
+    text = re.sub(r"(?is)</(?:p|div|section|article|tr)>", "\n\n", text)
+    text = re.sub(r"(?is)</(?:td|th)>", " | ", text)
+    text = re.sub(r"(?is)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?is)<[^>]+>", "", text)
+    text = unescape(text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"^\s*\|\s*$", "", text, flags=re.MULTILINE)
+    return text.strip() + "\n"
+
+
 def anonymize_brokers(text: str) -> str:
     text = re.split(DISCLOSURE_SPLIT_PATTERN, text, maxsplit=1, flags=re.IGNORECASE)[0]
     text = re.sub(r"<table\b[^>]*>.*?(?:Equity Analyst|Research Associate).*?</table>", "", text, flags=re.IGNORECASE | re.DOTALL)
@@ -598,6 +648,7 @@ def discover_vault(explicit: str | None) -> Path | None:
         candidates.append(Path(env).expanduser())
     home = Path.home()
     candidates.extend([
+        DEFAULT_OBSIDIAN_VAULT,
         home / "Documents/Obsidian",
         home / "Documents/Obsidian Vault",
         home / "Library/Mobile Documents/iCloud~md~obsidian/Documents",
@@ -672,9 +723,11 @@ def open_obsidian(note_path: Path, vault: Path | None, archive_dir: str) -> dict
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Convert a research report with MinerU and archive it to Obsidian.")
+    parser = argparse.ArgumentParser(description="Archive structured research long-image content to Obsidian.")
     parser.add_argument("input", help="PDF/DOC/PPT/XLS/image file, or an existing Markdown file.")
     parser.add_argument("--method", choices=["auto", "cli", "standard-api", "agent-api"], default="auto")
+    parser.add_argument("--content-html", help="Generated long-image HTML to convert into the archived note body. Skips full PDF conversion.")
+    parser.add_argument("--content-md", help="Generated long-image Markdown to use as the archived note body. Skips full PDF conversion.")
     parser.add_argument("--vault", help="Obsidian vault path. Defaults to OBSIDIAN_VAULT_PATH when set.")
     parser.add_argument("--archive-dir", default=DEFAULT_ARCHIVE_DIR, help="Folder inside the vault for archived reports.")
     parser.add_argument("--attachment-dir", default=DEFAULT_ATTACHMENT_DIR, help="Folder inside the vault for copied long-image PNGs.")
@@ -699,15 +752,24 @@ def main() -> int:
     if not input_path.exists():
         raise SystemExit(f"Input file not found: {input_path}")
 
-    with tempfile.TemporaryDirectory(prefix="mineru_obsidian_") as temp_dir:
-        temp_root = Path(temp_dir)
-        conversion = convert_to_markdown(input_path, temp_root, args)
-        markdown = read_markdown(conversion.markdown_path)
+    structured_content = read_structured_content(args)
+    if structured_content:
+        markdown, conversion = structured_content
         if not args.no_anonymize:
             markdown = anonymize_brokers(markdown)
         title = extract_title(markdown, input_path)
         keywords = extract_keywords(markdown, args.keywords.split(",") if args.keywords else [], args.keyword_limit)
         note_path = archive_to_obsidian(markdown, title, input_path, conversion, keywords, args)
+    else:
+        with tempfile.TemporaryDirectory(prefix="mineru_obsidian_") as temp_dir:
+            temp_root = Path(temp_dir)
+            conversion = convert_to_markdown(input_path, temp_root, args)
+            markdown = read_markdown(conversion.markdown_path)
+            if not args.no_anonymize:
+                markdown = anonymize_brokers(markdown)
+            title = extract_title(markdown, input_path)
+            keywords = extract_keywords(markdown, args.keywords.split(",") if args.keywords else [], args.keyword_limit)
+            note_path = archive_to_obsidian(markdown, title, input_path, conversion, keywords, args)
 
     vault = discover_vault(args.vault)
     opened = {"opened": False, "method": "not-attempted", "warning": ""}
