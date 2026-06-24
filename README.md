@@ -66,7 +66,7 @@ Restart Codex if the skill is not discovered immediately.
 
 ## Usage
 
-By default, this skill runs in `快处理模式`: it turns the report into a concise Chinese long image and archives it, can include a one-month chart for clearly supported company stocks when it is quick to fetch, and skips optional current-news browsing, Xueqiu sentiment, full Futu event-pulse interpretation, and technical/funds-flow cards unless the user explicitly asks for deep/slow/full processing.
+By default, this skill runs in `快处理模式`: it turns the report into a concise Chinese long image and archives it, automatically skips boilerplate such as appendices, disclaimers, disclosure sections, analyst certifications, contact directories, and duplicated OCR/table fragments, can include a one-month chart for clearly supported company stocks when it is quick to fetch, and skips optional current-news browsing, Xueqiu sentiment, full Futu event-pulse interpretation, and technical/funds-flow cards unless the user explicitly asks for deep/slow/full processing.
 
 Ask Codex:
 

@@ -9,6 +9,7 @@ description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Mark
 
 - Default to `快处理模式` unless the user explicitly asks for `深度处理`, `慢处理`, `完整处理`, `补充最新行情`, `补充新闻`, `雪球情绪`, `富途事件脉冲`, or similar expanded research.
 - In fast mode, prioritize getting from the source report to the Chinese structured HTML/PNG and Obsidian archive quickly. Use the report's own disclosed facts, tables, ratings, target prices, and valuation context first.
+- In fast mode, automatically skip non-core boilerplate before structuring: appendices, legal disclaimers, disclosure appendix, analyst certification, required disclosures, rating-history tables, methodology/legal notices, contact directories, global research office lists, copyright pages, and duplicated OCR/table fragments that do not affect the investment thesis.
 - In fast mode, skip optional post-report market pulse work by default: do not browse for current news, do not search 雪球/community discussion, and do not expand recent-event, sentiment, technical/funds-flow interpretation cards unless explicitly requested.
 - In fast mode, Futu current-price/valuation data and the `近一个月走势图` may be included for supported single-company or recommended-stock modules when they can be fetched quickly. If quote or chart lookup is slow, unsupported, or permission-limited, omit the module or state the exact limitation compactly instead of blocking the long-image workflow.
 - When the user asks for deep/slow/full processing, enable the optional current-news, discussion-temperature, event-pulse, and technical/funds-flow workflow described below.
@@ -30,6 +31,8 @@ description: 用户上传/拖入研报时自动触发。把研究机构 PDF/Mark
    - If MinerU conversion fails or is unavailable, use `pdfplumber`/`pypdf` when text extraction works.
    - For image-only PDFs, render pages with `pdftoppm` and visually inspect/OCR the most relevant pages.
    - Extract the report title, date, author/source, rating, target price, current/report price, key thesis, catalysts, risks, and source notes.
+   - Before summarizing or designing the long image, discard boilerplate and non-thesis blocks. Stop reading the source body once it reaches sections such as `Disclosure Appendix`, `Important Disclosures`, `Analyst Certification`, `Required Disclosures`, `Ratings Distribution`, `Valuation Methodology and Risks`, `Disclaimers`, `Legal Entity Disclosure`, `Global Research`, `Research Offices`, `Copyright`, or their Chinese equivalents (`附录`, `免责声明`, `重要披露`, `分析师声明`, `评级分布`, `法律声明`, `研究方法与风险`, `版权声明`) unless a specific line is needed to verify rating, target price, or risk methodology.
+   - Ignore repeated page headers/footers, table-of-contents residue, OCR artifacts, analyst contact blocks, email/phone lists, entity-registration paragraphs, and boilerplate risk/legal text. Keep only source-note-level evidence required for investment content, anonymization, or validation.
    - Treat the extracted broker/bank/research-house name as internal-only metadata. Do not display specific institution names in the final HTML, PNG, downloaded filename, footer, or final user-facing summary unless the user explicitly asks to preserve them.
 
 2. Structure the content in Chinese.
